@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Carte Multi-Grilles Poppy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Carte principale fullscreen */
+    #map { height: 100vh; width: 100%; }
+
+    /* Bouton pour ouvrir le modal */
+    #open-search-btn { position:absolute; top:10px; left:10px; z-index:1001;
+      padding:8px 12px; background:#007bff; color:white; border:none; border-radius:4px;
+      cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
+
+    /* Overlay modal */
+    #search-modal { display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,0.5);
+      justify-content:center; align-items:center; z-index:1002; }
+    #search-modal.active { display:flex; }
+
+    /* Contenu modal en 3 colonnes */
+    #search-content { background:white; width:90%; max-width:1000px;
+      display:flex; border-radius:8px; overflow:hidden; }
+    #modal-left { flex:1; padding:20px; position:relative; }
+    #modal-center {
+        flex: 1; padding: 20px; border-left: 1px solid #ddd;
+        border-right: 1px solid #ddd;
+        overflow-y: auto;
+        max-height: 400px;
+      }
+    #modal-right { flex:1.5; }
+
+    /* Fermer modal */
+    #close-modal { position:absolute; top:10px; right:10px;
+      font-size:24px; cursor:pointer; }
+
+    /* Champs formulaire */
+    #modal-left label { margin-top:10px; font-weight:bold; display:block; }
+    #modal-left input, #modal-left textarea {
+      margin-top:4px; padding:6px; border:1px solid #ccc;
+      border-radius:4px; width:100%; box-sizing:border-box; }
+    #modal-left textarea { resize:vertical; height:80px; }
+    #modal-left button { margin-top:20px; padding:8px 12px;
+      background:#28a745; color:white; border:none; border-radius:4px;
+      cursor:pointer; }
+    #modal-close-btn { margin-top:10px; background:#dc3545 !important;
+      color:white !important; cursor:pointer; border:none;
+      padding:8px 12px; border-radius:4px; }
+
+    /* Suggestions */
+    #suggestions {
+      list-style: none; margin: 0; padding: 0;
+      max-height: 350px; overflow-y: auto;
+    }
+    #suggestions li { padding:6px; cursor:pointer;
+      border-bottom:1px solid #eee; }
+    #suggestions li:hover { background:#f0f0f0; }
+
+    /* Carte dans le modal */
+    #search-map { height:100%; }
+
+    /* Sidebar */
+    #sidebar { position:absolute; top:0; right:0;
+      width:300px; height:100%; background:white;
+      border-left:2px solid gray; padding:10px;
+      overflow-y:auto; display:none; z-index:1000; }
+
+    /* Menu contextuel */
+    .context-menu { position:absolute; z-index:9999; background:white;
+      border:1px solid gray; box-shadow:2px 2px 5px rgba(0,0,0,0.3);
+      padding:5px; display:none; }
+    .context-menu button { width:100%; padding:5px;
+      background:none; border:none; text-align:left;
+      cursor:pointer; }
+    .context-menu button:hover { background:#eee; }
+
+    /* Étiquettes */
+    .grid-label { font-size:11px; font-weight:bold; color:black;
+      background:transparent; padding:0; }
+    .service-label, .hospital-label, .intervention-label {
+      background:white; color:black; font-weight:bold;
+      border-radius:4px; padding:2px 4px;
+      box-shadow:0 1px 2px rgba(0,0,0,0.3); }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button id="open-search-btn">Ajouter adresse détaillée</button>
+
+  <!-- Modal avancé -->
+  <div id="search-modal">
+    <div id="search-content">
+      <!-- Colonne gauche -->
+      <div id="modal-left">
+        <span id="close-modal">&times;</span>
+        <h3>Ajouter une adresse</h3>
+        <label for="addr-street">Rue</label>
+        <input id="addr-street" type="text" placeholder="Nom de la rue..." />
+        <label for="addr-number">Numéro</label>
+        <input id="addr-number" type="text" placeholder="Numéro de maison..." />
+        <label for="addr-commune">Commune</label>
+        <input id="addr-commune" type="text" placeholder="Ex : Bruxelles" />
+        <label for="addr-comment">Commentaire</label>
+        <textarea id="addr-comment" placeholder="Détails... (optionnel)"></textarea>
+        <button id="search-submit">Valider</button>
+        <button id="modal-close-btn" type="button">Fermer</button>
+      </div>
+      <!-- Colonne centre -->
+      <div id="modal-center">
+        <h4>Suggestions</h4>
+        <ul id="suggestions"></ul>
+      </div>
+      <!-- Colonne droite -->
+      <div id="modal-right">
+        <div id="search-map"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar"></div>
+  <div id="context-menu" class="context-menu"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // --- Carte principale ---
+    const map = L.map('map').setView([50.8445,4.3857],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20}).addTo(map);
+
+    // --- Modal & sous-carte ---
+    const modal = document.getElementById('search-modal');
+    const openBtn = document.getElementById('open-search-btn');
+    const closeIcon = document.getElementById('close-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const subMapDiv = document.getElementById('search-map');
+    let subMap, subMarker;
+    function initSubMap() {
+      if (subMap) return;
+      subMap = L.map(subMapDiv).setView([50.8445,4.3857],16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22}).addTo(subMap);
+    }
+    openBtn.onclick = ()=>{ modal.classList.add('active'); setTimeout(initSubMap,100); };
+    closeIcon.onclick = modalCloseBtn.onclick = ()=> modal.classList.remove('active');
+
+    // --- Champs et suggestions ---
+    const streetInput = document.getElementById('addr-street');
+    const numInput = document.getElementById('addr-number');
+    const communeInput = document.getElementById('addr-commune');
+    const suggestions = document.getElementById('suggestions');
+    let debounceTimer;
+    [streetInput, numInput, communeInput].forEach(el =>
+      el.addEventListener('input', ()=>{
+        clearTimeout(debounceTimer);
+        if (!streetInput.value.trim()) { suggestions.innerHTML=''; return; }
+        debounceTimer = setTimeout(updateSuggestions,300);
+      })
+    );
+
+    // --- Mise à jour des suggestions via Nominatim ---
+    function updateSuggestions() {
+      initSubMap();
+      const street = streetInput.value.trim();
+      const number = numInput.value.trim();
+      const commune = communeInput.value.trim() || 'Bruxelles';
+      suggestions.innerHTML = '';
+
+      if (!street) return;
+      if (!number) {
+        // Recherche de voies avec Overpass API
+        const overpassQuery = `
+          [out:json][timeout:25];
+          area[name="${commune}"]->.a;
+          way["highway"]["name"~"${street}",i](area.a);
+          out center;`;
+        fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: overpassQuery })
+          .then(r => r.json())
+          .then(data => {
+            data.elements.forEach(el => {
+              const name = el.tags && el.tags.name;
+              if (!name) return;
+              const li = document.createElement('li');
+              li.textContent = `${name}, ${commune}`;
+              li.addEventListener('mouseenter', () => {
+                const ll = [el.center ? el.center.lat : el.lat, el.center ? el.center.lon : el.lon];
+                subMap.setView(ll, 18);
+                if (subMarker) subMap.removeLayer(subMarker);
+                subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
+              });
+              li.addEventListener('click', () => {
+                streetInput.value = name;
+                numInput.value = '';
+                suggestions.innerHTML = '';
+              });
+              suggestions.appendChild(li);
+            });
+          });
+      } else {
+        // Recherche Nominatim pour numéro précis
+        const params = new URLSearchParams({ format:'json', limit:10, countrycodes:'be', addressdetails:1, 'accept-language':'fr',
+          street: street, housenumber: number, city: commune });
+        fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`)
+          .then(r => r.json())
+          .then(data => {
+            data.forEach(item => {
+              const li = document.createElement('li');
+              li.textContent = item.display_name;
+              li.addEventListener('mouseenter', () => {
+                const ll = [parseFloat(item.lat), parseFloat(item.lon)];
+                subMap.setView(ll, 18);
+                if (subMarker) subMap.removeLayer(subMarker);
+                subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
+              });
+              li.addEventListener('click', () => {
+                streetInput.value = street;
+                numInput.value = number;
+                suggestions.innerHTML = '';
+              });
+              suggestions.appendChild(li);
+            });
+          });
+      }
+    }
+
+    // --- Valider l'adresse ---
+    document.getElementById('search-submit').onclick=()=>{
+      const addr=`${streetInput.value} ${numInput.value||''}, ${communeInput.value}`;
+      initSubMap();
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`)
+        .then(r=>r.json())
+        .then(d=>{
+          if(!d.length) return;
+          const ll=[parseFloat(d[0].lat),parseFloat(d[0].lon)];
+          if(subMarker) subMap.removeLayer(subMarker);
+          subMarker=L.marker(ll,{draggable:true}).addTo(subMap);
+          subMap.setView(ll,18);
+        });
+    };
+
+    // Chargement des grilles
+    const gridFiles = ['grid1.geojson','grid2.geojson','grid3.geojson','grid4.geojson','grid5.geojson','grid6.geojson'];
+    const visibleCols = ['A','C','E','G','I','K','M','O','Q','S','U','W','Y','AA','AC','AE','AG','AI','AK'];
+    let gridLabels = [];
+
+    gridFiles.forEach(f => fetch(f).then(r=>r.json()).then(data => L.geoJSON(data,{ style:{color:'red',weight:1,fillOpacity:0}, onEachFeature }).addTo(map)));
+
+    function onEachFeature(feature,layer) {
+      const name = feature.properties.name;
+      if (!name) return;
+      const row = +name.match(/\d+/)[0];
+      const col = name.match(/[A-Z]+/)[0];
+      const show = (col==='A')||(row===1)||(row%2===1&&visibleCols.includes(col));
+      if (show) {
+        const c = layer.getBounds().getCenter();
+        const t = L.tooltip({permanent:true,direction:'center',className:'grid-label'}).setLatLng(c).setContent(name);
+        gridLabels.push(t);
+      }
+      layer.on('click', e => {
+        const {lat,lng} = e.latlng;
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+          .then(r=>r.json()).then(d=> L.popup().setLatLng([lat,lng]).setContent(`<b>Cellule :</b>${name}<br><b>Adresse :</b><br>${d.display_name}`).openOn(map));
+      });
+    }
+
+    map.on('zoomend', ()=>{
+      const z = map.getZoom();
+      gridLabels.forEach(t=>{
+        const has=map.hasLayer(t);
+        if(z>=15&&!has) map.addLayer(t);
+        if(z<15&&has) map.removeLayer(t);
+      });
+    });
+
+    // Chargement hôpitaux
+    let hospitals=[];
+    fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:`[out:json][timeout:25];area[name="Brussels"]->.a;(node["amenity"="hospital"](area.a);node["emergency"="hospital"](area.a););out body;`})
+      .then(r=>r.json()).then(d=>d.elements.forEach(el=>{
+        if(!el.lat||!el.lon) return;
+        const nm=el.tags.name||'Hôpital';
+        const mk = L.marker([el.lat,el.lon],{icon:L.divIcon({html:'🏥',iconAnchor:[12,12]})}).addTo(map);
+        mk.bindTooltip(nm,{direction:'top',className:'hospital-label'});
+        mk.on('click',()=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${el.lat}&lon=${el.lon}`).then(r=>r.json()).then(dd=>{document.getElementById('sidebar').innerHTML=`<h3>${nm}</h3><p>${dd.display_name}</p>`;document.getElementById('sidebar').style.display='block';});});
+        hospitals.push({marker:mk,coords:[el.lat,el.lon],name:nm});
+      }));
+
+    // Menu contextuel
+    let contextMarker=null;
+    map.on('contextmenu',e=>{
+      const cm=document.getElementById('context-menu');cm.style.left=e.originalEvent.pageX+'px';cm.style.top=e.originalEvent.pageY+'px';cm.style.display='block';
+      const{lat,lng}=e.latlng;
+      cm.innerHTML=`<button onclick="showAddress(${lat},${lng})">Afficher adresse</button><button onclick="addSvc('ambulance',${lat},${lng})">Ajouter Ambulance</button><button onclick="addSvc('poste',${lat},${lng})">Ajouter Poste de soin</button><button onclick="addSvc('intervention',${lat},${lng})">Ajouter Intervention</button>`;
+    });
+    document.addEventListener('click',()=>document.getElementById('context-menu').style.display='none');
+
+    function showAddress(lat,lng){fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(r=>r.json()).then(d=>{document.getElementById('sidebar').innerHTML=`<h3>Adresse</h3><p>${d.display_name}</p>`;document.getElementById('sidebar').style.display='block';});}
+    function addSvc(type,lat,lng){document.getElementById('context-menu').style.display='none';const nm=prompt(`Nom ${type}(alphanum.)`);if(!nm)return;const icons={ambulance:'🚑',poste:'➕',intervention:'⚠️'};const ico=L.divIcon({html:`<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,iconAnchor:[20,20]});const mk=L.marker([lat,lng],{icon:ico,draggable:true}).addTo(map);mk.bindTooltip(nm,{permanent:true,direction:'top',className:'service-label'}).openTooltip();mk.on('contextmenu',ev=>{ev.originalEvent.stopPropagation();contextMarker=mk;const cm=document.getElementById('context-menu');cm.style.left=ev.originalEvent.pageX+'px';cm.style.top=ev.originalEvent.pageY+'px';cm.style.display='block';cm.innerHTML=`<button onclick="delMarker()">Supprimer</button>`;});}
+    function delMarker(){if(contextMarker)map.removeLayer(contextMarker);contextMarker=null;document.getElementById('context-menu').style.display='none';}
+  </script>
+</body>
+</html>
