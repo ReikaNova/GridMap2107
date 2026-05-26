@@ -252,14 +252,28 @@ fetch('trace-20km.geojson')
   .then(data => {
 
     data.features.forEach(feature => {
+
       const name = (feature.properties?.name || '').trim();
       const lowerName = name.toLowerCase();
+      const geomType = feature.geometry?.type;
 
       let targetLayer = null;
       let icon = '📍';
 
+      // -----------------------------
+      // PARCOURS / LIGNES
+      // -----------------------------
       if (
-        lowerName.includes('racetrack') ||
+        geomType === 'LineString' ||
+        geomType === 'MultiLineString'
+      ) {
+        targetLayer = parcoursLayer;
+      }
+
+      // -----------------------------
+      // KM / START / FINISH
+      // -----------------------------
+      if (
         lowerName.includes('start') ||
         lowerName.includes('finish') ||
         lowerName.includes('km')
@@ -268,18 +282,31 @@ fetch('trace-20km.geojson')
         icon = '🏁';
       }
 
+      // -----------------------------
+      // MEDICAL
+      // -----------------------------
       if (
+        lowerName.includes('poste soins') ||
+        lowerName.includes('poste croix rouge') ||
         lowerName.includes('pedro')
       ) {
         targetLayer = medicalLayer;
         icon = '🏥';
       }
 
-      if (lowerName.includes('ravitaillement')) {
+      // -----------------------------
+      // RAVITAILLEMENT
+      // -----------------------------
+      if (
+        lowerName.includes('ravitaillement')
+      ) {
         targetLayer = ravitoLayer;
         icon = '🥤';
       }
 
+      // -----------------------------
+      // POLICE
+      // -----------------------------
       if (
         lowerName.includes('vbp') ||
         lowerName.includes('monty')
@@ -288,6 +315,9 @@ fetch('trace-20km.geojson')
         icon = '👮';
       }
 
+      // -----------------------------
+      // BLOCS BETON
+      // -----------------------------
       if (
         lowerName.includes('bloc béton') ||
         lowerName.includes('bloc beton') ||
@@ -298,6 +328,9 @@ fetch('trace-20km.geojson')
         icon = '🧱';
       }
 
+      // -----------------------------
+      // ACCES AMBULANCE
+      // -----------------------------
       if (
         lowerName.includes('way in') ||
         lowerName.includes('way out') ||
@@ -310,8 +343,17 @@ fetch('trace-20km.geojson')
       if (!targetLayer) return;
 
       const geoLayer = L.geoJSON(feature, {
+
+        // -----------------------------
+        // STYLE DES LIGNES
+        // -----------------------------
         style: function() {
-          if (lowerName.includes('racetrack')) {
+
+          if (
+            geomType === 'LineString' ||
+            geomType === 'MultiLineString' ||
+            lowerName.includes('racetrack')
+          ) {
             return {
               color: 'red',
               weight: 5,
@@ -319,7 +361,9 @@ fetch('trace-20km.geojson')
             };
           }
 
-          if (lowerName.includes('ambulance sur rail')) {
+          if (
+            lowerName.includes('ambulance sur rail')
+          ) {
             return {
               color: 'red',
               weight: 5,
@@ -346,8 +390,12 @@ fetch('trace-20km.geojson')
           };
         },
 
+        // -----------------------------
+        // CREATION DES POINTS
+        // -----------------------------
         pointToLayer: function(feature, latlng) {
 
+          // Pas d’icône pour les KM
           if (
             lowerName.includes('km') ||
             lowerName.includes('start') ||
@@ -370,9 +418,14 @@ fetch('trace-20km.geojson')
           });
         },
 
+        // -----------------------------
+        // POPUP / LABELS
+        // -----------------------------
         onEachFeature: function(feature, layer) {
+
           layer.bindPopup(`<b>${name}</b>`);
 
+          // Affichage permanent des KM
           if (
             lowerName.includes('km') ||
             lowerName.includes('start') ||
@@ -391,6 +444,9 @@ fetch('trace-20km.geojson')
       geoLayer.addTo(targetLayer);
     });
 
+    // -----------------------------
+    // ZOOM GLOBAL
+    // -----------------------------
     const allVisibleLayers = L.featureGroup([
       parcoursLayer,
       medicalLayer,
@@ -404,11 +460,14 @@ fetch('trace-20km.geojson')
       map.fitBounds(allVisibleLayers.getBounds());
     }
   })
+
   .catch(err => {
     console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
   });
 
-// --- Contrôle des couches ---
+// -----------------------------
+// CONTROLE DES COUCHES
+// -----------------------------
 const overlays = {
   "🏁 Parcours / KM": parcoursLayer,
   "🏥 Postes de soins": medicalLayer,
