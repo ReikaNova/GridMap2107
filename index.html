@@ -539,7 +539,7 @@ function getLineStyle(lowerName, geomType) {
         lowerName.includes('pedro')
       ) {
         targetLayer = medicalLayer;
-        icon = '🏥';
+        icon = 'PEDRO_ICON';
       }
 
       // Ravitaillement
@@ -631,13 +631,28 @@ function getLineStyle(lowerName, geomType) {
                   });
                 }
 
-                return L.marker(latlng, {
-                  icon: L.divIcon({
-                    html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
-                    className: '',
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
-                  })
+               // Icône personnalisée PEDRO / PMA
+if (icon === 'PEDRO_ICON') {
+
+  return L.marker(latlng, {
+    icon: L.icon({
+      iconUrl: './icone-pedro.png',
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+      popupAnchor: [0, -20]
+    })
+  });
+}
+
+// Icônes normales emoji
+return L.marker(latlng, {
+  icon: L.divIcon({
+    html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
+    className: '',
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
+  })
+});
                 });
               },
 
