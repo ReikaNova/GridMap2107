@@ -430,7 +430,6 @@
     const ravitoLayer = L.layerGroup().addTo(map);
     const policeLayer = L.layerGroup().addTo(map);
     const betonLayer = L.layerGroup().addTo(map);
-    const accesLayer = L.layerGroup().addTo(map);
     const autresLayer = L.layerGroup();
 
     function isKmOrStartFinish(lowerName) {
@@ -578,7 +577,7 @@ if (
         lowerName.includes('ambulance sur rail') ||
         lowerName.includes('rail tram')
       ) {
-        targetLayer = accesLayer;
+        targetLayer = lignesSecondairesLayer;
         icon = '🚑';
       }
 
@@ -668,7 +667,6 @@ if (
             ravitoLayer,
             policeLayer,
             betonLayer,
-            accesLayer
           ]);
 
           if (allLayers.getBounds().isValid()) {
