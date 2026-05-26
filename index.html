@@ -895,7 +895,13 @@ function showAddress(lat, lng) {
         <h3>Adresse</h3>
         <p>Adresse non disponible.</p>
         <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="closeSidebarAndAddressMarker()">Fermer</button>
+        <button onclick="
+          document.getElementById('sidebar').style.display='none';
+          if(addressMarker){
+          map.removeLayer(addressMarker);
+          addressMarker=null;
+}
+">Fermer</button>
       `;
     });
 }
