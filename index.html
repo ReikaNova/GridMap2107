@@ -248,13 +248,22 @@ fetch('trace-20km.geojson')
         color: 'red',
         weight: 5,
         opacity: 0.9
+      },
+      pointToLayer: function(feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: 4,
+          weight: 1,
+          fillOpacity: 0.8
+        });
+      },
+      onEachFeature: function(feature, layer) {
+        if (feature.properties && feature.properties.name) {
+          layer.bindTooltip(feature.properties.name);
+        }
       }
     }).addTo(map);
 
     map.fitBounds(trace20km.getBounds());
-  })
-  .catch(err => {
-    console.error('Erreur lors du chargement du tracé 20 km :', err);
   });
 
     // Chargement hôpitaux
