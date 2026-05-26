@@ -347,7 +347,6 @@ fetch('trace-20km.geojson')
   .catch(err => {
     console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
   });
-  });
     // Chargement hôpitaux
     let hospitals=[];
     fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:`[out:json][timeout:25];area[name="Brussels"]->.a;(node["amenity"="hospital"](area.a);node["emergency"="hospital"](area.a););out body;`})
