@@ -613,92 +613,67 @@ function getLineStyle(lowerName, geomType) {
                 return getLineStyle(lowerName, geomType);
               },
 
-              pointToLayer: function(feature, latlng) {
-                // Pas d'icône sous les KM, départ et arrivée : seulement le label
-                if (
-                  lowerName.includes('km') ||
-                  lowerName.includes('start') ||
-                  lowerName.includes('départ') ||
-                  lowerName.includes('depart') ||
-                  lowerName.includes('finish') ||
-                  lowerName.includes('arrivée') ||
-                  lowerName.includes('arrivee')
-                ) {
-                  return L.circleMarker(latlng, {
-                    radius: 1,
-                    opacity: 0,
-                    fillOpacity: 0
-                  });
-                }
+pointToLayer: function(feature, latlng) {
+  // Pas d'icône sous les KM, départ et arrivée : seulement le label
+  if (
+    lowerName.includes('km') ||
+    lowerName.includes('start') ||
+    lowerName.includes('départ') ||
+    lowerName.includes('depart') ||
+    lowerName.includes('finish') ||
+    lowerName.includes('arrivée') ||
+    lowerName.includes('arrivee')
+  ) {
+    return L.circleMarker(latlng, {
+      radius: 1,
+      opacity: 0,
+      fillOpacity: 0
+    });
+  }
 
-               // Icône personnalisée PEDRO / PMA
-if (icon === 'PEDRO_ICON') {
+  // Icône personnalisée PEDRO / PMA
+  if (icon === 'PEDRO_ICON') {
+    return L.marker(latlng, {
+      icon: L.icon({
+        iconUrl: './icone-pedro.png',
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
+        popupAnchor: [0, -20]
+      })
+    });
+  }
 
+  // Icônes normales emoji
   return L.marker(latlng, {
-    icon: L.icon({
-      iconUrl: './icone-pedro.png',
-      iconSize: [42, 42],
-      iconAnchor: [21, 21],
-      popupAnchor: [0, -20]
-    }),
+    icon: L.divIcon({
+      html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
+      className: '',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    })
   });
+},
+
+onEachFeature: function(feature, layer) {
+  layer.bindPopup(`<b>${name || 'Élément 20 km'}</b>`);
+
+  if (
+    lowerName.includes('km') ||
+    lowerName.includes('start') ||
+    lowerName.includes('départ') ||
+    lowerName.includes('depart') ||
+    lowerName.includes('finish') ||
+    lowerName.includes('arrivée') ||
+    lowerName.includes('arrivee')
+  ) {
+    layer.bindTooltip(name, {
+      permanent: true,
+      direction: 'top',
+      className: 'km-label',
+      offset: [0, -8]
+    });
+  }
 }
-
-// Icônes normales emoji
-return L.marker(latlng, {
-  icon: L.divIcon({
-    html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
-    className: '',
-    iconSize: [26, 26],
-    iconAnchor: [13, 13]
-  })
-});
-                });
-              },
-
-              onEachFeature: function(feature, layer) {
-                layer.bindPopup(`<b>${name || 'Élément 20 km'}</b>`);
-
-                if (
-                  lowerName.includes('km') ||
-                  lowerName.includes('start') ||
-                  lowerName.includes('départ') ||
-                  lowerName.includes('depart') ||
-                  lowerName.includes('finish') ||
-                  lowerName.includes('arrivée') ||
-                  lowerName.includes('arrivee')
-                ) {
-                  layer.bindTooltip(name, {
-                    permanent: true,
-                    direction: 'top',
-                    className: 'km-label',
-                    offset: [0, -8]
-                }
-              }
-            });
-
-            geoLayer.addTo(targetLayer);
-          });
-
-          const allLayers = L.featureGroup([
-            parcoursLayer,
-            medicalLayer,
-            ravitoLayer,
-            policeLayer,
-            betonLayer,
-            accesLayer
-          ]);
-
-          if (allLayers.getBounds().isValid()) {
-            map.fitBounds(allLayers.getBounds());
-          }
-        })
-        .catch(err => {
-          console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
-});
-    }
-
-    loadOperationalGeoJSON();
 
     // =====================================================
     // CONTROLE DES COUCHES
