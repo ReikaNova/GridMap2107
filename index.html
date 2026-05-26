@@ -256,7 +256,7 @@ fetch('trace-20km.geojson')
         name.includes('bloc béton') ||
         name.includes('bloc beton') ||
         name.includes('ambulance sur rail') ||
-        name.includes('KM')
+        name.includes('km')
       );
     });
 
@@ -324,6 +324,10 @@ fetch('trace-20km.geojson')
           icon = '🧱';
         }
 
+        if (name.includes('km')) {
+          icon = '🏁';
+        }
+
         return L.marker(latlng, {
           icon: L.divIcon({
             html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
@@ -336,7 +340,17 @@ fetch('trace-20km.geojson')
 
       onEachFeature: function(feature, layer) {
         const name = feature.properties?.name || 'Élément 20 km';
+
         layer.bindPopup(`<b>${name}</b>`);
+
+        if (name.toLowerCase().includes('km')) {
+          layer.bindTooltip(name, {
+            permanent: true,
+            direction: 'top',
+            className: 'service-label',
+            offset: [0, -10]
+          });
+        }
       }
 
     }).addTo(map);
