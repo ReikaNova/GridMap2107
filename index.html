@@ -849,7 +849,12 @@ marker.bindTooltip(hospital.name, {
       if (!nm) return;
 
       const icons = {
-        ambulance: '🚑',
+         ambulance: L.icon({
+    iconUrl: './icone-AMU.png',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20]
+  }),
         poste: '🏥',
         intervention: '⚠️'
       };
