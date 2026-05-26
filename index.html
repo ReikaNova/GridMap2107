@@ -422,20 +422,6 @@ const overlays = {
 L.control.layers(null, overlays, {
   collapsed: false
 }).addTo(map);
-
-// --- Contrôle des couches ---
-const overlays = {
-  "🏁 Parcours / KM": parcoursLayer,
-  "🏥 Postes de soins": medicalLayer,
-  "🥤 Ravitaillements": ravitoLayer,
-  "👮 Police - VBP / MONTY": policeLayer,
-  "🧱 Blocs béton": betonLayer,
-  "🚑 Accès ambulance / Way in-out": accesLayer
-};
-
-L.control.layers(null, overlays, {
-  collapsed: false
-}).addTo(map);
     
     // Chargement hôpitaux
     let hospitals=[];
