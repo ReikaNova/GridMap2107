@@ -239,39 +239,23 @@
         });
     };
 
-    // Chargement des grilles
-    const gridFiles = ['grid1.geojson','grid2.geojson','grid3.geojson','grid4.geojson','grid5.geojson','grid6.geojson'];
-    const visibleCols = ['A','C','E','G','I','K','M','O','Q','S','U','W','Y','AA','AC','AE','AG','AI','AK'];
-    let gridLabels = [];
-
-    gridFiles.forEach(f => fetch(f).then(r=>r.json()).then(data => L.geoJSON(data,{ style:{color:'red',weight:1,fillOpacity:0}, onEachFeature }).addTo(map)));
-
-    function onEachFeature(feature,layer) {
-      const name = feature.properties.name;
-      if (!name) return;
-      const row = +name.match(/\d+/)[0];
-      const col = name.match(/[A-Z]+/)[0];
-      const show = (col==='A')||(row===1)||(row%2===1&&visibleCols.includes(col));
-      if (show) {
-        const c = layer.getBounds().getCenter();
-        const t = L.tooltip({permanent:true,direction:'center',className:'grid-label'}).setLatLng(c).setContent(name);
-        gridLabels.push(t);
+// --- Chargement du tracé des 20 km de Bruxelles ---
+fetch('trace-20km.geojson')
+  .then(r => r.json())
+  .then(data => {
+    const trace20km = L.geoJSON(data, {
+      style: {
+        color: 'red',
+        weight: 5,
+        opacity: 0.9
       }
-      layer.on('click', e => {
-        const {lat,lng} = e.latlng;
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-          .then(r=>r.json()).then(d=> L.popup().setLatLng([lat,lng]).setContent(`<b>Cellule :</b>${name}<br><b>Adresse :</b><br>${d.display_name}`).openOn(map));
-      });
-    }
+    }).addTo(map);
 
-    map.on('zoomend', ()=>{
-      const z = map.getZoom();
-      gridLabels.forEach(t=>{
-        const has=map.hasLayer(t);
-        if(z>=15&&!has) map.addLayer(t);
-        if(z<15&&has) map.removeLayer(t);
-      });
-    });
+    map.fitBounds(trace20km.getBounds());
+  })
+  .catch(err => {
+    console.error('Erreur lors du chargement du tracé 20 km :', err);
+  });
 
     // Chargement hôpitaux
     let hospitals=[];
