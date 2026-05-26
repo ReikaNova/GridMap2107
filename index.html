@@ -239,24 +239,23 @@
         });
     };
 
-// --- Chargement filtré du GeoJSON 20km ---
+// --- Chargement filtré du GeoJSON 20 km ---
 fetch('trace-20km.geojson')
   .then(r => r.json())
   .then(data => {
 
     const filteredFeatures = data.features.filter(feature => {
-
-      const name =
-        (feature.properties?.name || '').toLowerCase();
+      const name = (feature.properties?.name || '').toLowerCase();
 
       return (
-        name.includes('poste médical') ||
-        name.includes('medical') ||
+        name.includes('racetrack') ||
+        name.includes('poste soins') ||
+        name.includes('poste croix rouge') ||
         name.includes('way in') ||
         name.includes('way out') ||
         name.includes('bloc béton') ||
         name.includes('bloc beton') ||
-        name.includes('ambulance sur rails')
+        name.includes('ambulance sur rail')
       );
     });
 
@@ -268,16 +267,21 @@ fetch('trace-20km.geojson')
     const layer = L.geoJSON(filteredGeoJSON, {
 
       style: function(feature) {
+        const name = (feature.properties?.name || '').toLowerCase();
 
-        const name =
-          (feature.properties?.name || '').toLowerCase();
-
-        if (
-          name.includes('ambulance sur rails')
-        ) {
+        if (name.includes('racetrack')) {
           return {
             color: 'red',
-            weight: 5
+            weight: 5,
+            opacity: 0.9
+          };
+        }
+
+        if (name.includes('ambulance sur rail')) {
+          return {
+            color: 'red',
+            weight: 5,
+            opacity: 0.9
           };
         }
 
@@ -288,24 +292,27 @@ fetch('trace-20km.geojson')
           return {
             color: 'blue',
             weight: 4,
+            opacity: 0.9,
             dashArray: '5, 5'
           };
         }
 
         return {
           color: 'orange',
-          weight: 3
+          weight: 3,
+          opacity: 0.9
         };
       },
 
       pointToLayer: function(feature, latlng) {
-
-        const name =
-          (feature.properties?.name || '').toLowerCase();
+        const name = (feature.properties?.name || '').toLowerCase();
 
         let icon = '📍';
 
-        if (name.includes('medical')) {
+        if (
+          name.includes('poste soins') ||
+          name.includes('poste croix rouge')
+        ) {
           icon = '🏥';
         }
 
@@ -318,25 +325,28 @@ fetch('trace-20km.geojson')
 
         return L.marker(latlng, {
           icon: L.divIcon({
-            html: `<div style="font-size:24px;">${icon}</div>`,
+            html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
             className: '',
-            iconSize: [24,24]
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
           })
         });
       },
 
       onEachFeature: function(feature, layer) {
-
-        const name =
-          feature.properties?.name || 'Point';
-
+        const name = feature.properties?.name || 'Élément 20 km';
         layer.bindPopup(`<b>${name}</b>`);
       }
 
     }).addTo(map);
 
-    map.fitBounds(layer.getBounds());
-
+    if (layer.getBounds().isValid()) {
+      map.fitBounds(layer.getBounds());
+    }
+  })
+  .catch(err => {
+    console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
+  });
   });
     // Chargement hôpitaux
     let hospitals=[];
