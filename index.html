@@ -570,7 +570,7 @@
     }
 
     function loadOperationalGeoJSON() {
-      fetch('trace-20km.geojson')
+      fetch('./trace-20km.geojson')
         .then(r => {
           if (!r.ok) {
             throw new Error('Fichier trace-20km.geojson introuvable');
