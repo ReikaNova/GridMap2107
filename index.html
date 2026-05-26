@@ -886,13 +886,7 @@ function showAddress(lat, lng) {
         <h3>Adresse</h3>
         <p>${d.display_name || 'Adresse non disponible'}</p>
         <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="
-          document.getElementById('sidebar').style.display='none';
-          if(addressMarker){
-          map.removeLayer(addressMarker);
-          addressMarker=null;
-          }
-          ">Fermer</button>
+        <button onclick="closeAddressSidebar()">Fermer</button>
       `;
     })
     .catch(err => {
@@ -901,15 +895,17 @@ function showAddress(lat, lng) {
         <h3>Adresse</h3>
         <p>Adresse non disponible.</p>
         <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="
-          document.getElementById('sidebar').style.display='none';
-          if(addressMarker){
-          map.removeLayer(addressMarker);
-          addressMarker=null;
-}
-">Fermer</button>
+        <button onclick="closeAddressSidebar()">Fermer</button>
       `;
     });
+  function closeAddressSidebar() {
+  document.getElementById('sidebar').style.display = 'none';
+
+  if (addressMarker) {
+    map.removeLayer(addressMarker);
+    addressMarker = null;
+  }
+}
 }
 // =====================================================
 // SAUVEGARDE LOCALE
