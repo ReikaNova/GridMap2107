@@ -578,7 +578,7 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
         lowerName.includes('ambulance sur rail') ||
         lowerName.includes('rail tram')
       ) {
-        targetLayer = llignesSecondairesLayer;
+        targetLayer = lignesSecondairesLayer;
         icon = '🚑';
       }
 
@@ -664,6 +664,7 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
 
           const allLayers = L.featureGroup([
             parcoursLayer,
+            lignesSecondairesLayer,
             medicalLayer,
             ravitoLayer,
             policeLayer,
