@@ -898,14 +898,14 @@ function showAddress(lat, lng) {
         <button onclick="closeAddressSidebar()">Fermer</button>
       `;
     });
-  function closeAddressSidebar() {
+}
+    function closeAddressSidebar() {
   document.getElementById('sidebar').style.display = 'none';
 
   if (addressMarker) {
     map.removeLayer(addressMarker);
     addressMarker = null;
   }
-}
 }
 // =====================================================
 // SAUVEGARDE LOCALE
