@@ -463,7 +463,7 @@
 
       if (lowerName.includes('ambulance sur rail')) {
         return {
-          color: 'red',
+          color: 'blue',
           weight: 5,
           opacity: 0.9
         };
@@ -504,11 +504,7 @@
       // KM / départ / arrivée
       if (
         lowerName.includes('start') ||
-        lowerName.includes('départ') ||
-        lowerName.includes('depart') ||
         lowerName.includes('finish') ||
-        lowerName.includes('arrivée') ||
-        lowerName.includes('arrivee') ||
         lowerName.includes('km')
       ) {
         targetLayer = parcoursLayer;
@@ -518,13 +514,7 @@
       // Médical
       if (
         lowerName.includes('pma') ||
-        lowerName.includes('dmp') ||
-        lowerName.includes('pedro') ||
-        lowerName.includes('poste soins') ||
-        lowerName.includes('poste de soins') ||
-        lowerName.includes('poste croix rouge') ||
-        lowerName.includes('croix-rouge') ||
-        lowerName.includes('croix rouge')
+        lowerName.includes('pedro')
       ) {
         targetLayer = medicalLayer;
         icon = '🏥';
@@ -532,8 +522,7 @@
 
       // Ravitaillement
       if (
-        lowerName.includes('ravitaillement') ||
-        lowerName.includes('ravito')
+        lowerName.includes('ravitaillement')
       ) {
         targetLayer = ravitoLayer;
         icon = '🥤';
