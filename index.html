@@ -447,46 +447,60 @@
     const accesLayer = L.layerGroup().addTo(map);
     const autresLayer = L.layerGroup();
 
-    function getLineStyle(lowerName, geomType) {
-      if (
-        geomType === 'LineString' ||
-        geomType === 'MultiLineString' ||
-        lowerName.includes('racetrack') ||
-        lowerName.includes('parcours')
-      ) {
-        return {
-          color: 'red',
-          weight: 5,
-          opacity: 0.9
-        };
-      }
+function getLineStyle(lowerName, geomType) {
 
-      if (lowerName.includes('ambulance sur rail')) {
-        return {
-          color: 'blue',
-          weight: 5,
-          opacity: 0.9
-        };
-      }
+  // -----------------------------
+  // PARCOURS PRINCIPAL
+  // -----------------------------
+  if (
+    lowerName.includes('parcours') ||
+    lowerName.includes('racetrack')
+  ) {
+    return {
+      color: 'red',
+      weight: 6,
+      opacity: 1
+    };
+  }
 
-      if (
-        lowerName.includes('way in') ||
-        lowerName.includes('way out')
-      ) {
-        return {
-          color: 'blue',
-          weight: 4,
-          opacity: 0.9,
-          dashArray: '5, 5'
-        };
-      }
+  // -----------------------------
+  // AUTRES LIGNES
+  // -----------------------------
+  if (
+    geomType === 'LineString' ||
+    geomType === 'MultiLineString'
+  ) {
+    return {
+      color: 'blue',
+      weight: 4,
+      opacity: 0.8
+    };
+  }
 
-      return {
-        color: 'blue',
-        weight: 3,
-        opacity: 0.9
-      };
-    }
+  // -----------------------------
+  // WAY IN / WAY OUT
+  // -----------------------------
+  if (
+    lowerName.includes('way in') ||
+    lowerName.includes('way out')
+  ) {
+    return {
+      color: '#0044cc',
+      weight: 4,
+      opacity: 1,
+      dashArray: '5, 5'
+    };
+  }
+
+  // -----------------------------
+  // DEFAULT
+  // -----------------------------
+  return {
+    color: 'orange',
+    weight: 3,
+    opacity: 0.9
+  };
+}
 
     function classifyFeature(feature) {
       const name = (feature.properties?.name || '').trim();
