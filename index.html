@@ -578,7 +578,7 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
         lowerName.includes('ambulance sur rail') ||
         lowerName.includes('rail tram')
       ) {
-        targetLayer = accesLayer;
+        targetLayer = llignesSecondairesLayer;
         icon = '🚑';
       }
 
@@ -692,7 +692,6 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
       '🥤 Ravitaillements': ravitoLayer,
       '👮 Police - VBP / MONTY': policeLayer,
       '🧱 Blocs béton': betonLayer,
-      '🚑 Accès ambulances / rails / way in-out': accesLayer,
       '📍 Autres éléments': autresLayer
     };
 
