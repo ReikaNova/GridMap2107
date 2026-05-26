@@ -494,9 +494,43 @@
       let targetLayer = null;
       let icon = '📍';
 
-      if (geomType === 'LineString' || geomType === 'MultiLineString') {
-        targetLayer = parcoursLayer;
-      }
+// =====================================================
+// LIGNES
+// =====================================================
+if (
+  geomType === 'LineString' ||
+  geomType === 'MultiLineString'
+) {
+
+  // Parcours principal
+  if (
+    lowerName.includes('parcours') ||
+    lowerName.includes('racetrack')
+  ) {
+
+    targetLayer = parcoursLayer;
+
+  }
+
+  // Way in / way out / ambulance sur rail
+  else if (
+    lowerName.includes('way in') ||
+    lowerName.includes('way out') ||
+    lowerName.includes('ambulance sur rail') ||
+    lowerName.includes('rail tram')
+  ) {
+
+    targetLayer = accesLayer;
+
+  }
+
+  // Toutes les autres lignes
+  else {
+
+    targetLayer = autresLayer;
+
+  }
+}
 
       if (isKmOrStartFinish(lowerName)) {
         targetLayer = parcoursLayer;
