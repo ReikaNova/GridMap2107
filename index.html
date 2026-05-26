@@ -803,6 +803,7 @@ if (
 // MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
 // =====================================================
 let contextMarker = null;
+let addressMarker = null;
 // Sauvegarde locale
 let savedMarkers = JSON.parse(localStorage.getItem('pccMarkers') || '[]');
 let lastRightClickLatLng = null;
@@ -857,6 +858,21 @@ document.addEventListener('click', event => {
 function showAddress(lat, lng) {
   const sidebar = document.getElementById('sidebar');
 
+  // Supprime l'ancien marqueur d'adresse s'il existe
+  if (addressMarker) {
+    map.removeLayer(addressMarker);
+  }
+
+  // Ajoute un marqueur temporaire à l'endroit du clic droit
+  addressMarker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: '<div style="font-size:34px;line-height:1;">📍</div>',
+      className: '',
+      iconSize: [34, 34],
+      iconAnchor: [17, 34]
+    })
+  }).addTo(map);
+
   sidebar.innerHTML = `
     <h3>Adresse</h3>
     <p>Recherche de l’adresse...</p>
@@ -870,7 +886,7 @@ function showAddress(lat, lng) {
         <h3>Adresse</h3>
         <p>${d.display_name || 'Adresse non disponible'}</p>
         <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
+        <button onclick="closeSidebarAndAddressMarker()">Fermer</button>
       `;
     })
     .catch(err => {
@@ -879,7 +895,7 @@ function showAddress(lat, lng) {
         <h3>Adresse</h3>
         <p>Adresse non disponible.</p>
         <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
+        <button onclick="closeSidebarAndAddressMarker()">Fermer</button>
       `;
     });
 }
