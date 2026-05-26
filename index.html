@@ -859,15 +859,26 @@ marker.bindTooltip(hospital.name, {
         intervention: '⚠️'
       };
 
-      const marker = L.marker([lat, lng], {
-        draggable: true,
-        icon: L.divIcon({
-          html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
-          className: '',
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
-        })
-      }).addTo(map);
+let markerIcon;
+
+if (type === 'ambulance') {
+
+  markerIcon = icons.ambulance;
+
+} else {
+
+  markerIcon = L.divIcon({
+    html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
+    className: '',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+  });
+}
+
+const marker = L.marker([lat, lng], {
+  draggable: true,
+  icon: markerIcon
+}).addTo(map);
 
       marker.bindTooltip(nm, {
         permanent: true,
