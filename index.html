@@ -695,69 +695,101 @@ function getLineStyle(lowerName, geomType) {
       collapsed: false
     }).addTo(map);
 
-    // =====================================================
-    // HOPITAUX VIA OVERPASS
-    // =====================================================
-    const hospitals = [];
+// =====================================================
+// HOPITAUX / SERVICES D'URGENCES FIXES
+// =====================================================
+const hospitals = [
+  {
+    name: 'Erasme',
+    address: 'Rue Meylemeersch 56, 1070 Anderlecht',
+    coords: [50.8136, 4.2656]
+  },
+  {
+    name: 'Saint-Luc',
+    address: 'Avenue Hippocrate 10, 1200 Woluwe-Saint-Lambert',
+    coords: [50.8520, 4.4527]
+  },
+  {
+    name: 'UZ Brussel',
+    address: 'Avenue du Laerbeek 101, 1090 Jette',
+    coords: [50.8869, 4.3086]
+  },
+  {
+    name: 'Delta',
+    address: 'Boulevard du Triomphe 201, 1160 Auderghem',
+    coords: [50.8186, 4.4007]
+  },
+  {
+    name: 'Saint-Pierre',
+    address: 'Rue Haute 290, 1000 Bruxelles',
+    coords: [50.8346, 4.3452]
+  },
+  {
+    name: 'Saint-Jean',
+    address: 'Boulevard du Jardin Botanique 32, 1000 Bruxelles',
+    coords: [50.8551, 4.3613]
+  },
+  {
+    name: 'HUDERF - Pédiatrique',
+    address: 'Avenue Jean Joseph Crocq 15, 1020 Bruxelles',
+    coords: [50.8868, 4.3310]
+  },
+  {
+    name: 'Brugmann - Horta',
+    address: 'Avenue Jean Joseph Crocq 1, 1020 Bruxelles',
+    coords: [50.8865, 4.3317]
+  },
+  {
+    name: 'Brugmann - Brien',
+    address: 'Avenue Britsiers 5, 1030 Schaerbeek',
+    coords: [50.8786, 4.3972]
+  },
+  {
+    name: 'Hôpital Militaire',
+    address: 'Rue Bruyn 1, 1120 Bruxelles',
+    coords: [50.9026, 4.3890]
+  },
+  {
+    name: 'Saint-Elisabeth',
+    address: 'Avenue De Fré 206, 1180 Uccle',
+    coords: [50.8036, 4.3653]
+  },
+  {
+    name: 'Saint-Michel',
+    address: 'Rue de Linthout 150, 1040 Etterbeek',
+    coords: [50.8424, 4.4098]
+  }
+];
 
-    function loadHospitals() {
-      const query = `
-        [out:json][timeout:25];
-        area[name="Brussels"]->.a;
-        (
-          node["amenity"="hospital"](area.a);
-          node["emergency"="hospital"](area.a);
-        );
-        out body;`;
+hospitals.forEach(hospital => {
+  const marker = L.marker(hospital.coords, {
+    icon: L.divIcon({
+      html: '<div style="font-size:28px;line-height:1;">🏥</div>',
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    })
+  }).addTo(map);
 
-      fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: query
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (!d.elements) return;
+const specialClass =
+  hospital.name.includes('Saint-Pierre') ||
+  hospital.name.includes('Saint-Luc')
+    ? 'hospital-label-important'
+    : 'hospital-label';
 
-          d.elements.forEach(el => {
-            if (!el.lat || !el.lon) return;
+marker.bindTooltip(hospital.name, {
+  permanent: true,
+  direction: 'top',
+  className: specialClass,
+  offset: [0, -10]
+});
 
-            const nm = el.tags?.name || 'Hôpital';
-
-            const marker = L.marker([el.lat, el.lon], {
-              icon: L.divIcon({
-                html: '<div style="font-size:24px;line-height:1;">🏥</div>',
-                className: '',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-              })
-            }).addTo(map);
-
-            marker.bindTooltip(nm, {
-              direction: 'top',
-              className: 'hospital-label'
-            });
-
-            marker.on('click', () => {
-              fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${el.lat}&lon=${el.lon}`)
-                .then(r => r.json())
-                .then(dd => {
-                  document.getElementById('sidebar').innerHTML = `
-                    <h3>${nm}</h3>
-                    <p>${dd.display_name || 'Adresse non disponible'}</p>
-                    <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
-                  `;
-                  document.getElementById('sidebar').style.display = 'block';
-                });
-            });
-
-            hospitals.push({ marker, coords: [el.lat, el.lon], name: nm });
-          });
-        })
-        .catch(err => console.error('Erreur chargement hôpitaux :', err));
-    }
-
-    loadHospitals();
-
+  marker.bindPopup(`
+    <b>${hospital.name}</b><br>
+    <b>Urgences :</b><br>
+    ${hospital.address}
+  `);
+});
     // =====================================================
     // MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
     // =====================================================
