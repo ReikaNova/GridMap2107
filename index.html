@@ -425,6 +425,7 @@
     // COUCHES OPERATIONNELLES 20 KM
     // =====================================================
     const parcoursLayer = L.layerGroup().addTo(map);
+    const lignesSecondairesLayer = L.layerGroup().addTo(map);
     const medicalLayer = L.layerGroup().addTo(map);
     const ravitoLayer = L.layerGroup().addTo(map);
     const policeLayer = L.layerGroup().addTo(map);
@@ -520,7 +521,7 @@ if (
     lowerName.includes('rail tram')
   ) {
 
-    targetLayer = accesLayer;
+    targetLayer = lignesSecondairesLayer;
 
   }
 
@@ -686,11 +687,11 @@ if (
     // =====================================================
     const overlays = {
       '🏁 Parcours / KM': parcoursLayer,
+      '🔵 Lignes secondaires': lignesSecondairesLayer,
       '🏥 Médical / PMA / postes': medicalLayer,
       '🥤 Ravitaillements': ravitoLayer,
       '👮 Police - VBP / MONTY': policeLayer,
       '🧱 Blocs béton': betonLayer,
-      '🚑 Accès ambulances / rails / way in-out': accesLayer,
       '📍 Autres éléments': autresLayer
     };
 
