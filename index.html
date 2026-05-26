@@ -239,33 +239,105 @@
         });
     };
 
-// --- Chargement du tracé des 20 km de Bruxelles ---
+// --- Chargement filtré du GeoJSON 20km ---
 fetch('trace-20km.geojson')
   .then(r => r.json())
   .then(data => {
-    const trace20km = L.geoJSON(data, {
-      style: {
-        color: 'red',
-        weight: 5,
-        opacity: 0.9
+
+    const filteredFeatures = data.features.filter(feature => {
+
+      const name =
+        (feature.properties?.name || '').toLowerCase();
+
+      return (
+        name.includes('poste médical') ||
+        name.includes('medical') ||
+        name.includes('way in') ||
+        name.includes('way out') ||
+        name.includes('bloc béton') ||
+        name.includes('bloc beton') ||
+        name.includes('ambulance sur rails')
+      );
+    });
+
+    const filteredGeoJSON = {
+      type: "FeatureCollection",
+      features: filteredFeatures
+    };
+
+    const layer = L.geoJSON(filteredGeoJSON, {
+
+      style: function(feature) {
+
+        const name =
+          (feature.properties?.name || '').toLowerCase();
+
+        if (
+          name.includes('ambulance sur rails')
+        ) {
+          return {
+            color: 'red',
+            weight: 5
+          };
+        }
+
+        if (
+          name.includes('way in') ||
+          name.includes('way out')
+        ) {
+          return {
+            color: 'blue',
+            weight: 4,
+            dashArray: '5, 5'
+          };
+        }
+
+        return {
+          color: 'orange',
+          weight: 3
+        };
       },
+
       pointToLayer: function(feature, latlng) {
-        return L.circleMarker(latlng, {
-          radius: 4,
-          weight: 1,
-          fillOpacity: 0.8
+
+        const name =
+          (feature.properties?.name || '').toLowerCase();
+
+        let icon = '📍';
+
+        if (name.includes('medical')) {
+          icon = '🏥';
+        }
+
+        if (
+          name.includes('bloc béton') ||
+          name.includes('bloc beton')
+        ) {
+          icon = '🧱';
+        }
+
+        return L.marker(latlng, {
+          icon: L.divIcon({
+            html: `<div style="font-size:24px;">${icon}</div>`,
+            className: '',
+            iconSize: [24,24]
+          })
         });
       },
+
       onEachFeature: function(feature, layer) {
-        if (feature.properties && feature.properties.name) {
-          layer.bindTooltip(feature.properties.name);
-        }
+
+        const name =
+          feature.properties?.name || 'Point';
+
+        layer.bindPopup(`<b>${name}</b>`);
       }
+
     }).addTo(map);
 
-    map.fitBounds(trace20km.getBounds());
-  });
+    map.fitBounds(layer.getBounds());
 
+  });
     // Chargement hôpitaux
     let hospitals=[];
     fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:`[out:json][timeout:25];area[name="Brussels"]->.a;(node["amenity"="hospital"](area.a);node["emergency"="hospital"](area.a););out body;`})
