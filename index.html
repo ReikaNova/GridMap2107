@@ -21,7 +21,6 @@
       width: 100%;
     }
 
-    /* Bouton recherche adresse */
     #open-search-btn {
       position: absolute;
       top: 10px;
@@ -41,7 +40,6 @@
       background: #0056b3;
     }
 
-    /* Modal recherche adresse */
     #search-modal {
       display: none;
       position: fixed;
@@ -155,7 +153,6 @@
       background: #f0f0f0;
     }
 
-    /* Sidebar infos */
     #sidebar {
       position: absolute;
       top: 0;
@@ -171,7 +168,6 @@
       box-shadow: -2px 0 4px rgba(0,0,0,0.2);
     }
 
-    /* Menu clic droit */
     .context-menu {
       position: absolute;
       z-index: 9999;
@@ -197,7 +193,6 @@
       background: #eee;
     }
 
-    /* Labels */
     .service-label,
     .hospital-label,
     .km-label {
@@ -209,15 +204,17 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.3);
       border: 1px solid #aaa;
     }
+
     .hospital-label-important {
-  background: #ff4d4d;
-  color: white;
-  font-weight: bold;
-  border-radius: 4px;
-  padding: 3px 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-  border: 2px solid darkred;
-}
+      background: #ff4d4d;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      padding: 3px 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      border: 2px solid darkred;
+    }
+
     .km-label {
       font-size: 12px;
       background: #fff3cd;
@@ -233,7 +230,6 @@
   <div id="map"></div>
   <button id="open-search-btn">Rechercher une adresse</button>
 
-  <!-- Modal recherche adresse -->
   <div id="search-modal">
     <div id="search-content">
       <div id="modal-left">
@@ -270,7 +266,6 @@
   <div id="sidebar"></div>
   <div id="context-menu" class="context-menu"></div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
@@ -309,6 +304,7 @@
       }
 
       subMap = L.map(subMapDiv).setView([50.8445, 4.3857], 16);
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 22,
         attribution: '&copy; OpenStreetMap contributors'
@@ -330,10 +326,12 @@
     [streetInput, numInput, communeInput].forEach(el => {
       el.addEventListener('input', () => {
         clearTimeout(debounceTimer);
+
         if (!streetInput.value.trim()) {
           suggestions.innerHTML = '';
           return;
         }
+
         debounceTimer = setTimeout(updateSuggestions, 300);
       });
     });
@@ -455,60 +453,59 @@
     const accesLayer = L.layerGroup().addTo(map);
     const autresLayer = L.layerGroup();
 
-function getLineStyle(lowerName, geomType) {
+    function isKmOrStartFinish(lowerName) {
+      return (
+        lowerName.includes('km') ||
+        lowerName.includes('start') ||
+        lowerName.includes('départ') ||
+        lowerName.includes('depart') ||
+        lowerName.includes('finish') ||
+        lowerName.includes('arrivée') ||
+        lowerName.includes('arrivee')
+      );
+    }
 
-  // -----------------------------
-  // PARCOURS PRINCIPAL
-  // -----------------------------
-  if (
-    lowerName.includes('parcours') ||
-    lowerName.includes('racetrack')
-  ) {
-    return {
-      color: 'red',
-      weight: 6,
-      opacity: 1
-    };
-  }
+    function getLineStyle(lowerName, geomType) {
+      if (
+        lowerName.includes('parcours') ||
+        lowerName.includes('racetrack')
+      ) {
+        return {
+          color: 'red',
+          weight: 6,
+          opacity: 1
+        };
+      }
 
-  // -----------------------------
-  // AUTRES LIGNES
-  // -----------------------------
-  if (
-    geomType === 'LineString' ||
-    geomType === 'MultiLineString'
-  ) {
-    return {
-      color: 'blue',
-      weight: 4,
-      opacity: 0.8
-    };
-  }
+      if (
+        lowerName.includes('way in') ||
+        lowerName.includes('way out')
+      ) {
+        return {
+          color: '#0044cc',
+          weight: 4,
+          opacity: 1,
+          dashArray: '5, 5'
+        };
+      }
 
-  // -----------------------------
-  // WAY IN / WAY OUT
-  // -----------------------------
-  if (
-    lowerName.includes('way in') ||
-    lowerName.includes('way out')
-  ) {
-    return {
-      color: '#0044cc',
-      weight: 4,
-      opacity: 1,
-      dashArray: '5, 5'
-    };
-  }
+      if (
+        geomType === 'LineString' ||
+        geomType === 'MultiLineString'
+      ) {
+        return {
+          color: 'blue',
+          weight: 4,
+          opacity: 0.8
+        };
+      }
 
-  // -----------------------------
-  // DEFAULT
-  // -----------------------------
-  return {
-    color: 'orange',
-    weight: 3,
-    opacity: 0.9
-  };
-}
+      return {
+        color: 'orange',
+        weight: 3,
+        opacity: 0.9
+      };
+    }
 
     function classifyFeature(feature) {
       const name = (feature.properties?.name || '').trim();
@@ -518,22 +515,15 @@ function getLineStyle(lowerName, geomType) {
       let targetLayer = null;
       let icon = '📍';
 
-      // Priorité 1 : toutes les lignes vont dans la couche parcours/acces selon leur nom
       if (geomType === 'LineString' || geomType === 'MultiLineString') {
         targetLayer = parcoursLayer;
       }
 
-      // KM / départ / arrivée
-      if (
-        lowerName.includes('start') ||
-        lowerName.includes('finish') ||
-        lowerName.includes('km')
-      ) {
+      if (isKmOrStartFinish(lowerName)) {
         targetLayer = parcoursLayer;
         icon = '🏁';
       }
 
-      // Médical
       if (
         lowerName.includes('pma') ||
         lowerName.includes('pedro')
@@ -542,15 +532,11 @@ function getLineStyle(lowerName, geomType) {
         icon = 'PEDRO_ICON';
       }
 
-      // Ravitaillement
-      if (
-        lowerName.includes('ravitaillement')
-      ) {
+      if (lowerName.includes('ravitaillement')) {
         targetLayer = ravitoLayer;
         icon = '🥤';
       }
 
-      // Police
       if (
         lowerName.includes('vbp') ||
         lowerName.includes('monty') ||
@@ -560,7 +546,6 @@ function getLineStyle(lowerName, geomType) {
         icon = '👮';
       }
 
-      // Blocs béton
       if (
         lowerName.includes('bloc béton') ||
         lowerName.includes('bloc beton') ||
@@ -573,7 +558,6 @@ function getLineStyle(lowerName, geomType) {
         icon = '🧱';
       }
 
-      // Accès ambulances
       if (
         lowerName.includes('way in') ||
         lowerName.includes('way out') ||
@@ -589,6 +573,36 @@ function getLineStyle(lowerName, geomType) {
       }
 
       return { name, lowerName, geomType, targetLayer, icon };
+    }
+
+    function createPointMarker(icon, lowerName, latlng) {
+      if (isKmOrStartFinish(lowerName)) {
+        return L.circleMarker(latlng, {
+          radius: 1,
+          opacity: 0,
+          fillOpacity: 0
+        });
+      }
+
+      if (icon === 'PEDRO_ICON') {
+        return L.marker(latlng, {
+          icon: L.icon({
+            iconUrl: './icone-pedro.png',
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
+            popupAnchor: [0, -20]
+          })
+        });
+      }
+
+      return L.marker(latlng, {
+        icon: L.divIcon({
+          html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
+          className: '',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        })
+      });
     }
 
     function loadOperationalGeoJSON() {
@@ -613,67 +627,46 @@ function getLineStyle(lowerName, geomType) {
                 return getLineStyle(lowerName, geomType);
               },
 
-pointToLayer: function(feature, latlng) {
-  // Pas d'icône sous les KM, départ et arrivée : seulement le label
-  if (
-    lowerName.includes('km') ||
-    lowerName.includes('start') ||
-    lowerName.includes('départ') ||
-    lowerName.includes('depart') ||
-    lowerName.includes('finish') ||
-    lowerName.includes('arrivée') ||
-    lowerName.includes('arrivee')
-  ) {
-    return L.circleMarker(latlng, {
-      radius: 1,
-      opacity: 0,
-      fillOpacity: 0
-    });
-  }
+              pointToLayer: function(feature, latlng) {
+                return createPointMarker(icon, lowerName, latlng);
+              },
 
-  // Icône personnalisée PEDRO / PMA
-  if (icon === 'PEDRO_ICON') {
-    return L.marker(latlng, {
-      icon: L.icon({
-        iconUrl: './icone-pedro.png',
-        iconSize: [42, 42],
-        iconAnchor: [21, 21],
-        popupAnchor: [0, -20]
-      })
-    });
-  }
+              onEachFeature: function(feature, layer) {
+                layer.bindPopup(`<b>${name || 'Élément 20 km'}</b>`);
 
-  // Icônes normales emoji
-  return L.marker(latlng, {
-    icon: L.divIcon({
-      html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
-      className: '',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
-    })
-  });
-},
+                if (isKmOrStartFinish(lowerName)) {
+                  layer.bindTooltip(name, {
+                    permanent: true,
+                    direction: 'top',
+                    className: 'km-label',
+                    offset: [0, -8]
+                  });
+                }
+              }
+            });
 
-onEachFeature: function(feature, layer) {
-  layer.bindPopup(`<b>${name || 'Élément 20 km'}</b>`);
+            geoLayer.addTo(targetLayer);
+          });
 
-  if (
-    lowerName.includes('km') ||
-    lowerName.includes('start') ||
-    lowerName.includes('départ') ||
-    lowerName.includes('depart') ||
-    lowerName.includes('finish') ||
-    lowerName.includes('arrivée') ||
-    lowerName.includes('arrivee')
-  ) {
-    layer.bindTooltip(name, {
-      permanent: true,
-      direction: 'top',
-      className: 'km-label',
-      offset: [0, -8]
-    });
-  }
-}
+          const allLayers = L.featureGroup([
+            parcoursLayer,
+            medicalLayer,
+            ravitoLayer,
+            policeLayer,
+            betonLayer,
+            accesLayer
+          ]);
+
+          if (allLayers.getBounds().isValid()) {
+            map.fitBounds(allLayers.getBounds());
+          }
+        })
+        .catch(err => {
+          console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
+        });
+    }
+
+    loadOperationalGeoJSON();
 
     // =====================================================
     // CONTROLE DES COUCHES
@@ -692,106 +685,107 @@ onEachFeature: function(feature, layer) {
       collapsed: false
     }).addTo(map);
 
-// =====================================================
-// HOPITAUX / SERVICES D'URGENCES FIXES
-// =====================================================
-const hospitals = [
-  {
-    name: 'Erasme',
-    address: 'Rue Meylemeersch 56, 1070 Anderlecht',
-    coords: [50.812956763410135, 4.264414063647006]
-  },
-  {
-    name: 'Saint-Luc',
-    address: 'Avenue Hippocrate 10, 1200 Woluwe-Saint-Lambert',
-    coords: [50.85280744862943, 4.4530067903795745]
-  },
-  {
-    name: 'UZ Brussel',
-    address: 'Avenue du Laerbeek 101, 1090 Jette',
-    coords: [50.8869, 4.3086]
-  },
-  {
-    name: 'Delta',
-    address: 'Boulevard du Triomphe 201, 1160 Auderghem',
-    coords: [50.816713476732794, 4.401125189555937]
-  },
-  {
-    name: 'Saint-Pierre',
-    address: 'Rue Haute 290, 1000 Bruxelles',
-    coords: [50.83500132140279, 4.348421513884464]
-  },
-  {
-    name: 'Saint-Jean',
-    address: 'Rue du Marais, 1000 Bruxelles',
-    coords: [50.85383914534936,4.36062845813364]
-  },
-  {
-    name: 'HUDERF',
-    address: 'Avenue Jean Joseph Crocq 15, 1020 Bruxelles',
-    coords: [50.88780197316318, 4.32810098714858]
-  },
-  {
-    name: 'Brugmann - Horta',
-    address: 'Avenue Jean Joseph Crocq 1, 1020 Bruxelles',
-    coords: [50.88675206798677, 4.328807272572446]
-  },
-  {
-    name: 'Brugmann - Brien',
-    address: 'Avenue Britsiers 5, 1030 Schaerbeek',
-    coords: [50.86950303506836, 4.386391285318982]
-  },
-  {
-    name: 'Hôpital Militaire',
-    address: 'Rue Bruyn 1, 1120 Bruxelles',
-    coords: [50.90579504085275, 4.390143060705705]
-  },
-  {
-    name: 'Saint-Elisabeth',
-    address: 'Avenue De Fré 206, 1180 Uccle',
-    coords: [50.80471885186682, 4.367609845897773]
-  },
-  {
-    name: 'Saint-Michel',
-    address: 'Rue Charles Degroux 80, 1040 Etterbeek',
-    coords: [50.84252339387735, 4.398953288526473]
-  },
-    {
-    name: 'Ixelle',
-    address: 'Rue Jean Paquot 63, 1050 Ixelles',
-    coords: [50.82513994453975, 4.3795843591274375]
-  }
-];
+    // =====================================================
+    // HOPITAUX / SERVICES D'URGENCES FIXES
+    // =====================================================
+    const hospitals = [
+      {
+        name: 'Erasme',
+        address: 'Rue Meylemeersch 56, 1070 Anderlecht',
+        coords: [50.812956763410135, 4.264414063647006]
+      },
+      {
+        name: 'Saint-Luc',
+        address: 'Avenue Hippocrate 10, 1200 Woluwe-Saint-Lambert',
+        coords: [50.85280744862943, 4.4530067903795745]
+      },
+      {
+        name: 'UZ Brussel',
+        address: 'Avenue du Laerbeek 101, 1090 Jette',
+        coords: [50.8869, 4.3086]
+      },
+      {
+        name: 'Delta',
+        address: 'Boulevard du Triomphe 201, 1160 Auderghem',
+        coords: [50.816713476732794, 4.401125189555937]
+      },
+      {
+        name: 'Saint-Pierre',
+        address: 'Rue Haute 290, 1000 Bruxelles',
+        coords: [50.83500132140279, 4.348421513884464]
+      },
+      {
+        name: 'Saint-Jean',
+        address: 'Rue du Marais, 1000 Bruxelles',
+        coords: [50.85383914534936, 4.36062845813364]
+      },
+      {
+        name: 'HUDERF',
+        address: 'Avenue Jean Joseph Crocq 15, 1020 Bruxelles',
+        coords: [50.88780197316318, 4.32810098714858]
+      },
+      {
+        name: 'Brugmann - Horta',
+        address: 'Avenue Jean Joseph Crocq 1, 1020 Bruxelles',
+        coords: [50.88675206798677, 4.328807272572446]
+      },
+      {
+        name: 'Brugmann - Brien',
+        address: 'Avenue Britsiers 5, 1030 Schaerbeek',
+        coords: [50.86950303506836, 4.386391285318982]
+      },
+      {
+        name: 'Hôpital Militaire',
+        address: 'Rue Bruyn 1, 1120 Bruxelles',
+        coords: [50.90579504085275, 4.390143060705705]
+      },
+      {
+        name: 'Saint-Elisabeth',
+        address: 'Avenue De Fré 206, 1180 Uccle',
+        coords: [50.80471885186682, 4.367609845897773]
+      },
+      {
+        name: 'Saint-Michel',
+        address: 'Rue Charles Degroux 80, 1040 Etterbeek',
+        coords: [50.84252339387735, 4.398953288526473]
+      },
+      {
+        name: 'Ixelles',
+        address: 'Rue Jean Paquot 63, 1050 Ixelles',
+        coords: [50.82513994453975, 4.3795843591274375]
+      }
+    ];
 
-hospitals.forEach(hospital => {
-  const marker = L.marker(hospital.coords, {
-    icon: L.divIcon({
-      html: '<div style="font-size:28px;line-height:1;">🏥</div>',
-      className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
-    })
-  }).addTo(map);
+    hospitals.forEach(hospital => {
+      const marker = L.marker(hospital.coords, {
+        icon: L.divIcon({
+          html: '<div style="font-size:28px;line-height:1;">🏥</div>',
+          className: '',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        })
+      }).addTo(map);
 
-const specialClass =
-  hospital.name.includes('Saint-Pierre') ||
-  hospital.name.includes('Saint-Luc')
-    ? 'hospital-label-important'
-    : 'hospital-label';
+      const specialClass =
+        hospital.name.includes('Saint-Pierre') ||
+        hospital.name.includes('Saint-Luc')
+          ? 'hospital-label-important'
+          : 'hospital-label';
 
-marker.bindTooltip(hospital.name, {
-  permanent: true,
-  direction: 'top',
-  className: specialClass,
-  offset: [0, -10]
-});
+      marker.bindTooltip(hospital.name, {
+        permanent: true,
+        direction: 'top',
+        className: specialClass,
+        offset: [0, -10]
+      });
 
-  marker.bindPopup(`
-    <b>${hospital.name}</b><br>
-    <b>Urgences :</b><br>
-    ${hospital.address}
-  `);
-});
+      marker.bindPopup(`
+        <b>${hospital.name}</b><br>
+        <b>Urgences :</b><br>
+        ${hospital.address}
+      `);
+    });
+
     // =====================================================
     // MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
     // =====================================================
@@ -838,36 +832,33 @@ marker.bindTooltip(hospital.name, {
       if (!nm) return;
 
       const icons = {
-ambulance: L.icon({
-  iconUrl: './icone-AMU.png',
-  iconSize: [60, 30],
-  iconAnchor: [30, 15],
-  popupAnchor: [0, -15]
-}),
-        poste: '🏥',
+        ambulance: L.icon({
+          iconUrl: './icone-AMU.png',
+          iconSize: [60, 30],
+          iconAnchor: [30, 15],
+          popupAnchor: [0, -15]
+        }),
+        poste: '⛑️',
         intervention: '⚠️'
       };
 
-let markerIcon;
+      let markerIcon;
 
-if (type === 'ambulance') {
+      if (type === 'ambulance') {
+        markerIcon = icons.ambulance;
+      } else {
+        markerIcon = L.divIcon({
+          html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
+          className: '',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+      }
 
-  markerIcon = icons.ambulance;
-
-} else {
-
-  markerIcon = L.divIcon({
-    html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
-    className: '',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
-}
-
-const marker = L.marker([lat, lng], {
-  draggable: true,
-  icon: markerIcon
-}).addTo(map);
+      const marker = L.marker([lat, lng], {
+        draggable: true,
+        icon: markerIcon
+      }).addTo(map);
 
       marker.bindTooltip(nm, {
         permanent: true,
