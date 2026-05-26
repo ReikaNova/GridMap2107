@@ -256,6 +256,7 @@ fetch('trace-20km.geojson')
       const lowerName = name.toLowerCase();
 
       let targetLayer = null;
+      let icon = '📍';
 
       if (
         lowerName.includes('racetrack') ||
@@ -264,10 +265,11 @@ fetch('trace-20km.geojson')
         lowerName.includes('km')
       ) {
         targetLayer = parcoursLayer;
+        icon = '🏁';
       }
 
       if (
-        lowerName.includes('pedro') ||
+        lowerName.includes('poste soins') ||
         lowerName.includes('poste croix rouge')
       ) {
         targetLayer = medicalLayer;
@@ -346,6 +348,19 @@ fetch('trace-20km.geojson')
         },
 
         pointToLayer: function(feature, latlng) {
+
+          if (
+            lowerName.includes('km') ||
+            lowerName.includes('start') ||
+            lowerName.includes('finish')
+          ) {
+            return L.circleMarker(latlng, {
+              radius: 1,
+              opacity: 0,
+              fillOpacity: 0
+            });
+          }
+
           return L.marker(latlng, {
             icon: L.divIcon({
               html: `<div style="font-size:26px;line-height:1;">${icon}</div>`,
@@ -393,6 +408,20 @@ fetch('trace-20km.geojson')
   .catch(err => {
     console.error('Erreur lors du chargement du GeoJSON 20 km :', err);
   });
+
+// --- Contrôle des couches ---
+const overlays = {
+  "🏁 Parcours / KM": parcoursLayer,
+  "🏥 Postes de soins": medicalLayer,
+  "🥤 Ravitaillements": ravitoLayer,
+  "👮 Police - VBP / MONTY": policeLayer,
+  "🧱 Blocs béton": betonLayer,
+  "🚑 Accès ambulance / Way in-out": accesLayer
+};
+
+L.control.layers(null, overlays, {
+  collapsed: false
+}).addTo(map);
 
 // --- Contrôle des couches ---
 const overlays = {
