@@ -769,6 +769,8 @@
 // MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
 // =====================================================
 let contextMarker = null;
+// Sauvegarde locale
+let savedMarkers = JSON.parse(localStorage.getItem('pccMarkers') || '[]');
 let lastRightClickLatLng = null;
 
 map.on('contextmenu', e => {
@@ -847,11 +849,38 @@ function showAddress(lat, lng) {
       `;
     });
 }
+// =====================================================
+// SAUVEGARDE LOCALE
+// =====================================================
+function saveMarkers() {
+  localStorage.setItem('pccMarkers', JSON.stringify(savedMarkers));
+}
 
-function addSvc(type, lat, lng) {
-  const nm = prompt(`Nom ${type} :`);
+function addSavedMarker(data) {
+  savedMarkers.push(data);
+  saveMarkers();
+}
+
+function removeSavedMarker(lat, lng, name) {
+  savedMarkers = savedMarkers.filter(m =>
+    !(
+      m.lat === lat &&
+      m.lng === lng &&
+      m.name === name
+    )
+  );
+
+  saveMarkers();
+}
+    
+function addSvc(type, lat, lng, fromStorage = false, savedName = null) {
+  let nm;
+if (fromStorage) {
+  nm = savedName;
+} else {
+  nm = prompt(`Nom ${type} :`);
   if (!nm) return;
-
+}
   const icons = {
     ambulance: L.icon({
       iconUrl: './icone-AMU.png',
@@ -876,10 +905,26 @@ function addSvc(type, lat, lng) {
     });
   }
 
-  const marker = L.marker([lat, lng], {
-    draggable: type !== 'intervention',
-    icon: markerIcon
-  }).addTo(map);
+const marker = L.marker([lat, lng], {
+  draggable: type !== 'intervention',
+  icon: markerIcon
+}).addTo(map);
+
+marker._customData = {
+  type,
+  name: nm,
+  lat,
+  lng
+};
+  // Sauvegarde locale
+if (!fromStorage) {
+  addSavedMarker({
+    type,
+    name: nm,
+    lat,
+    lng
+  });
+}
 
   marker.bindTooltip(nm, {
     permanent: true,
@@ -1003,12 +1048,25 @@ function getNearestHospitalsByRoad(lat, lng) {
 
 function delMarker() {
   if (contextMarker) {
+    const data = contextMarker._customData;
+    if (data) {
+      removeSavedMarker(
+        data.lat,
+        data.lng,
+        data.name
+      );
+    }
     map.removeLayer(contextMarker);
   }
-
   contextMarker = null;
   hideContextMenu();
 }
+// =====================================================
+// RECHARGEMENT DES MARQUEURS SAUVEGARDÉS
+// =====================================================
+savedMarkers.forEach(m => {
+  addSvc(m.type, m.lat, m.lng, true, m.name);
+});
   </script>
 </body>
 </html>
