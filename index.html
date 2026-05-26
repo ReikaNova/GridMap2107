@@ -344,84 +344,63 @@
       const commune = communeInput.value.trim() || 'Bruxelles';
 
       suggestions.innerHTML = '';
+
       if (!street) return;
 
-      if (!number) {
-        const overpassQuery = `
-          [out:json][timeout:25];
-          area[name="${commune}"]->.a;
-          way["highway"]["name"~"${street}",i](area.a);
-          out center;`;
+      const query = `${street} ${number || ''}, ${commune}, Belgique`.trim();
 
-        fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: overpassQuery
+      const params = new URLSearchParams({
+        format: 'json',
+        limit: 8,
+        countrycodes: 'be',
+        addressdetails: 1,
+        'accept-language': 'fr',
+        q: query
+      });
+
+      fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!Array.isArray(data) || !data.length) {
+            const li = document.createElement('li');
+            li.textContent = 'Aucune suggestion trouvée';
+            li.style.color = '#777';
+            suggestions.appendChild(li);
+            return;
+          }
+
+          data.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.display_name;
+
+            li.addEventListener('mouseenter', () => {
+              const ll = [parseFloat(item.lat), parseFloat(item.lon)];
+              subMap.setView(ll, 18);
+
+              if (subMarker) subMap.removeLayer(subMarker);
+              subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
+            });
+
+            li.addEventListener('click', () => {
+              const ll = [parseFloat(item.lat), parseFloat(item.lon)];
+
+              subMap.setView(ll, 18);
+              if (subMarker) subMap.removeLayer(subMarker);
+              subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
+
+              suggestions.innerHTML = '';
+            });
+
+            suggestions.appendChild(li);
+          });
         })
-          .then(r => r.json())
-          .then(data => {
-            if (!data.elements || !data.elements.length) return;
-
-            data.elements.forEach(el => {
-              const name = el.tags && el.tags.name;
-              if (!name || !el.center) return;
-
-              const li = document.createElement('li');
-              li.textContent = `${name}, ${commune}`;
-
-              li.addEventListener('mouseenter', () => {
-                const ll = [el.center.lat, el.center.lon];
-                subMap.setView(ll, 18);
-                if (subMarker) subMap.removeLayer(subMarker);
-                subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
-              });
-
-              li.addEventListener('click', () => {
-                streetInput.value = name;
-                numInput.value = '';
-                suggestions.innerHTML = '';
-              });
-
-              suggestions.appendChild(li);
-            });
-          })
-          .catch(err => console.error('Erreur Overpass :', err));
-      } else {
-        const params = new URLSearchParams({
-          format: 'json',
-          limit: 10,
-          countrycodes: 'be',
-          addressdetails: 1,
-          'accept-language': 'fr',
-          street: street,
-          housenumber: number,
-          city: commune
+        .catch(err => {
+          console.error('Erreur Nominatim :', err);
+          const li = document.createElement('li');
+          li.textContent = 'Erreur lors de la recherche';
+          li.style.color = 'red';
+          suggestions.appendChild(li);
         });
-
-        fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`)
-          .then(r => r.json())
-          .then(data => {
-            data.forEach(item => {
-              const li = document.createElement('li');
-              li.textContent = item.display_name;
-
-              li.addEventListener('mouseenter', () => {
-                const ll = [parseFloat(item.lat), parseFloat(item.lon)];
-                subMap.setView(ll, 18);
-                if (subMarker) subMap.removeLayer(subMarker);
-                subMarker = L.marker(ll, { draggable: true }).addTo(subMap);
-              });
-
-              li.addEventListener('click', () => {
-                streetInput.value = street;
-                numInput.value = number;
-                suggestions.innerHTML = '';
-              });
-
-              suggestions.appendChild(li);
-            });
-          })
-          .catch(err => console.error('Erreur Nominatim :', err));
-      }
     }
 
     document.getElementById('search-submit').onclick = () => {
@@ -446,7 +425,6 @@
     // COUCHES OPERATIONNELLES 20 KM
     // =====================================================
     const parcoursLayer = L.layerGroup().addTo(map);
-    const lignesSecondairesLayer = L.layerGroup().addTo(map);
     const medicalLayer = L.layerGroup().addTo(map);
     const ravitoLayer = L.layerGroup().addTo(map);
     const policeLayer = L.layerGroup().addTo(map);
@@ -516,22 +494,9 @@
       let targetLayer = null;
       let icon = '📍';
 
-if (geomType === 'LineString' || geomType === 'MultiLineString') {
-
-  // Parcours principal
-  if (
-    lowerName.includes('parcours') ||
-    lowerName.includes('racetrack')
-  ) {
-
-    targetLayer = parcoursLayer;
-
-  } else {
-
-    // Toutes les autres lignes
-    targetLayer = lignesSecondairesLayer;
-  }
-}
+      if (geomType === 'LineString' || geomType === 'MultiLineString') {
+        targetLayer = parcoursLayer;
+      }
 
       if (isKmOrStartFinish(lowerName)) {
         targetLayer = parcoursLayer;
@@ -578,7 +543,7 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
         lowerName.includes('ambulance sur rail') ||
         lowerName.includes('rail tram')
       ) {
-        targetLayer = lignesSecondairesLayer;
+        targetLayer = accesLayer;
         icon = '🚑';
       }
 
@@ -664,7 +629,6 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
 
           const allLayers = L.featureGroup([
             parcoursLayer,
-            lignesSecondairesLayer,
             medicalLayer,
             ravitoLayer,
             policeLayer,
@@ -688,11 +652,11 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
     // =====================================================
     const overlays = {
       '🏁 Parcours / KM': parcoursLayer,
-      '🔵 Accès Secours': lignesSecondairesLayer,
       '🏥 Médical / PMA / postes': medicalLayer,
       '🥤 Ravitaillements': ravitoLayer,
       '👮 Police - VBP / MONTY': policeLayer,
       '🧱 Blocs béton': betonLayer,
+      '🚑 Accès ambulances / rails / way in-out': accesLayer,
       '📍 Autres éléments': autresLayer
     };
 
@@ -801,157 +765,105 @@ if (geomType === 'LineString' || geomType === 'MultiLineString') {
       `);
     });
 
-// =====================================================
-// MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
-// =====================================================
-let contextMarker = null;
-let lastRightClickLatLng = null;
+    // =====================================================
+    // MENU CLIC DROIT : AJOUT TEMPORAIRE DE MARQUEURS
+    // =====================================================
+    let contextMarker = null;
 
-map.on('contextmenu', e => {
-  lastRightClickLatLng = e.latlng;
+    map.on('contextmenu', e => {
+      const cm = document.getElementById('context-menu');
+      cm.style.left = e.originalEvent.pageX + 'px';
+      cm.style.top = e.originalEvent.pageY + 'px';
+      cm.style.display = 'block';
 
-  const cm = document.getElementById('context-menu');
-  cm.style.left = e.originalEvent.pageX + 'px';
-  cm.style.top = e.originalEvent.pageY + 'px';
-  cm.style.display = 'block';
+      const { lat, lng } = e.latlng;
 
-  cm.innerHTML = `
-    <button type="button" id="btn-show-address">Afficher adresse</button>
-    <button type="button" id="btn-add-ambulance">Ajouter Ambulance</button>
-    <button type="button" id="btn-add-poste">Ajouter Poste de soin</button>
-    <button type="button" id="btn-add-intervention">Ajouter Intervention</button>
-  `;
-
-  document.getElementById('btn-show-address').onclick = () => {
-    hideContextMenu();
-    showAddress(lastRightClickLatLng.lat, lastRightClickLatLng.lng);
-  };
-
-  document.getElementById('btn-add-ambulance').onclick = () => {
-    hideContextMenu();
-    addSvc('ambulance', lastRightClickLatLng.lat, lastRightClickLatLng.lng);
-  };
-
-  document.getElementById('btn-add-poste').onclick = () => {
-    hideContextMenu();
-    addSvc('poste', lastRightClickLatLng.lat, lastRightClickLatLng.lng);
-  };
-
-  document.getElementById('btn-add-intervention').onclick = () => {
-    hideContextMenu();
-    addSvc('intervention', lastRightClickLatLng.lat, lastRightClickLatLng.lng);
-  };
-});
-
-function hideContextMenu() {
-  document.getElementById('context-menu').style.display = 'none';
-}
-
-document.addEventListener('click', event => {
-  const cm = document.getElementById('context-menu');
-
-  if (!cm.contains(event.target)) {
-    hideContextMenu();
-  }
-});
-
-function showAddress(lat, lng) {
-  const sidebar = document.getElementById('sidebar');
-
-  sidebar.innerHTML = `
-    <h3>Adresse</h3>
-    <p>Recherche de l’adresse...</p>
-  `;
-  sidebar.style.display = 'block';
-
-  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
-    .then(r => r.json())
-    .then(d => {
-      sidebar.innerHTML = `
-        <h3>Adresse</h3>
-        <p>${d.display_name || 'Adresse non disponible'}</p>
-        <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
-      `;
-    })
-    .catch(err => {
-      console.error('Erreur reverse geocoding :', err);
-
-      sidebar.innerHTML = `
-        <h3>Adresse</h3>
-        <p>Adresse non disponible.</p>
-        <p><b>Coordonnées :</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
-        <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
+      cm.innerHTML = `
+        <button onclick="showAddress(${lat}, ${lng})">Afficher adresse</button>
+        <button onclick="addSvc('ambulance', ${lat}, ${lng})">Ajouter Ambulance</button>
+        <button onclick="addSvc('poste', ${lat}, ${lng})">Ajouter Poste de soin</button>
+        <button onclick="addSvc('intervention', ${lat}, ${lng})">Ajouter Intervention</button>
       `;
     });
-}
 
-function addSvc(type, lat, lng) {
-  const nm = prompt(`Nom ${type} :`);
-  if (!nm) return;
-
-  const icons = {
-    ambulance: L.icon({
-      iconUrl: './icone-AMU.png',
-      iconSize: [60, 30],
-      iconAnchor: [30, 15],
-      popupAnchor: [0, -15]
-    }),
-    poste: '⛑️',
-    intervention: '⚠️'
-  };
-
-  let markerIcon;
-
-  if (type === 'ambulance') {
-    markerIcon = icons.ambulance;
-  } else {
-    markerIcon = L.divIcon({
-      html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
-      className: '',
-      iconSize: [40, 40],
-      iconAnchor: [20, 20]
+    document.addEventListener('click', () => {
+      document.getElementById('context-menu').style.display = 'none';
     });
-  }
 
-  const marker = L.marker([lat, lng], {
-    draggable: true,
-    icon: markerIcon
-  }).addTo(map);
+    function showAddress(lat, lng) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(r => r.json())
+        .then(d => {
+          document.getElementById('sidebar').innerHTML = `
+            <h3>Adresse</h3>
+            <p>${d.display_name || 'Adresse non disponible'}</p>
+            <button onclick="document.getElementById('sidebar').style.display='none'">Fermer</button>
+          `;
+          document.getElementById('sidebar').style.display = 'block';
+        })
+        .catch(err => console.error('Erreur reverse geocoding :', err));
+    }
 
-  marker.bindTooltip(nm, {
-    permanent: true,
-    direction: 'top',
-    className: 'service-label'
-  }).openTooltip();
+    function addSvc(type, lat, lng) {
+      document.getElementById('context-menu').style.display = 'none';
 
-  marker.on('contextmenu', ev => {
-    ev.originalEvent.stopPropagation();
-    contextMarker = marker;
+      const nm = prompt(`Nom ${type} :`);
+      if (!nm) return;
 
-    const cm = document.getElementById('context-menu');
-    cm.style.left = ev.originalEvent.pageX + 'px';
-    cm.style.top = ev.originalEvent.pageY + 'px';
-    cm.style.display = 'block';
+      const icons = {
+        ambulance: L.icon({
+          iconUrl: './icone-AMU.png',
+          iconSize: [60, 30],
+          iconAnchor: [30, 15],
+          popupAnchor: [0, -15]
+        }),
+        poste: '⛑️',
+        intervention: '⚠️'
+      };
 
-    cm.innerHTML = `
-      <button type="button" id="btn-delete-marker">Supprimer</button>
-    `;
+      let markerIcon;
 
-    document.getElementById('btn-delete-marker').onclick = () => {
-      delMarker();
-    };
-  });
-}
+      if (type === 'ambulance') {
+        markerIcon = icons.ambulance;
+      } else {
+        markerIcon = L.divIcon({
+          html: `<div style="font-size:40px;line-height:1;">${icons[type]}</div>`,
+          className: '',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+      }
 
-function delMarker() {
-  if (contextMarker) {
-    map.removeLayer(contextMarker);
-  }
+      const marker = L.marker([lat, lng], {
+        draggable: true,
+        icon: markerIcon
+      }).addTo(map);
 
-  contextMarker = null;
-  hideContextMenu();
-}
+      marker.bindTooltip(nm, {
+        permanent: true,
+        direction: 'top',
+        className: 'service-label'
+      }).openTooltip();
+
+      marker.on('contextmenu', ev => {
+        ev.originalEvent.stopPropagation();
+        contextMarker = marker;
+
+        const cm = document.getElementById('context-menu');
+        cm.style.left = ev.originalEvent.pageX + 'px';
+        cm.style.top = ev.originalEvent.pageY + 'px';
+        cm.style.display = 'block';
+        cm.innerHTML = '<button onclick="delMarker()">Supprimer</button>';
+      });
+    }
+
+    function delMarker() {
+      if (contextMarker) {
+        map.removeLayer(contextMarker);
+      }
+      contextMarker = null;
+      document.getElementById('context-menu').style.display = 'none';
+    }
   </script>
 </body>
 </html>
